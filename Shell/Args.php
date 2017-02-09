@@ -54,12 +54,22 @@ class Shell_Args {
 			if(array_key_exists($name, $opt)) {
 				$value = $arg['type'] == 'bool' ? true : $opt[$name];
 			}
-			if(is_null($arg['pattern']) || preg_match($arg['pattern'], $value) == 1) {
-				call_user_func($arg['callback'], $value);
+			if(!is_null($arg['pattern'])) {
+				if(!is_null($value) && is_null($arg['pattern']) || preg_match($arg['pattern'], $value) == 1) {
+					call_user_func($arg['callback'], $value);
+				} else {
+					$error = strlen($name) == 1 ? "-${name}" : "--${name}";
+					$error .= is_null($arg['pattern_desc']) ? " don't matches pattern " . $arg['pattern'] : ' ' . $arg['pattern_desc'];
+					Shell_Args::usage($error);
+				}
 			} else {
-				$error = strlen($name) == 1 ? "-${name}" : "--${name}";
-				$error .= is_null($arg['pattern_desc']) ? " don't matches pattern " . $arg['pattern'] : ' ' . $arg['pattern_desc'];
-				Shell_Args::usage($error);
+				if(!is_null($value)) {
+					call_user_func($arg['callback'], $value);
+				} else {
+					$error = "Missing argument: ";
+					$error .= strlen($name) == 1 ? "-${name}" : "--${name}";
+					Shell_Args::usage($error);
+				}
 			}
 		}
 	}
@@ -103,7 +113,7 @@ class Shell_Args {
 	
 	private static function printUsageLine($name, $arg) {
 		$oName = strlen($name) == 1 ? "-${name}" : "--${name}";
-		$default = ($arg['type'] == 'text' && !is_null($arg['default'])) ? sprintf(" ( default: %s )", $arg['default']) : '';
+		$default = (!is_null($arg['default']) && $arg['default'] !== false) ? sprintf(" ( default: %s )", $arg['default']) : '';
 		printf("%10s : %s%s\n", $oName, $arg['description'], $default);
 	}
 }
